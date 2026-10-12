@@ -18,11 +18,8 @@ package org.springframework.samples.petclinic.owner;
 import java.util.Collection;
 import java.util.Optional;
 
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.samples.petclinic.owner.validation.PetValidationRules;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
-import org.springframework.util.Assert;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -46,15 +43,21 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @RequestMapping("/owners/{ownerId}")
 class PetController {
 
-	private static final String VIEWS_PETS_CREATE_OR_UPDATE_FORM = "pets/createOrUpdatePetForm";
+	private static final String VIEWS_PETS_CREATE_OR_UPDATE_FORM = PetFormProcessor.FORM_VIEW;
 
 	private final OwnerRepository owners;
 
 	private final PetTypeRepository types;
 
+	private final PetFormProcessor creationProcessor;
+
+	private final PetFormProcessor updateProcessor;
+
 	public PetController(OwnerRepository owners, PetTypeRepository types) {
 		this.owners = owners;
 		this.types = types;
+		this.creationProcessor = new CreatePetFormProcessor(owners);
+		this.updateProcessor = new UpdatePetFormProcessor(owners);
 	}
 
 	@ModelAttribute("types")
@@ -105,26 +108,7 @@ class PetController {
 	@PostMapping("/pets/new")
 	public String processCreationForm(Owner owner, @Valid Pet pet, BindingResult result,
 			RedirectAttributes redirectAttributes) {
-
-		new PetValidator(PetValidationRules.forCreation(owner)).validate(pet, result);
-
-		if (result.hasErrors()) {
-			return VIEWS_PETS_CREATE_OR_UPDATE_FORM;
-		}
-
-		try {
-			owner.addPet(pet);
-			this.owners.saveAndFlush(owner);
-		}
-		catch (DataIntegrityViolationException ex) {
-			if (!isDuplicatePetNameViolation(ex)) {
-				throw ex;
-			}
-			result.rejectValue("name", "duplicate", "already exists");
-			return VIEWS_PETS_CREATE_OR_UPDATE_FORM;
-		}
-		redirectAttributes.addFlashAttribute("message", "New Pet has been Added");
-		return "redirect:/owners/{ownerId}";
+		return this.creationProcessor.process(owner, pet, result, redirectAttributes);
 	}
 
 	@GetMapping("/pets/{petId}/edit")
@@ -135,51 +119,7 @@ class PetController {
 	@PostMapping("/pets/{petId}/edit")
 	public String processUpdateForm(Owner owner, @Valid Pet pet, BindingResult result,
 			RedirectAttributes redirectAttributes) {
-
-		new PetValidator(PetValidationRules.forUpdate(owner)).validate(pet, result);
-
-		if (result.hasErrors()) {
-			return VIEWS_PETS_CREATE_OR_UPDATE_FORM;
-		}
-
-		try {
-			updatePetDetails(owner, pet);
-		}
-		catch (DataIntegrityViolationException ex) {
-			if (!isDuplicatePetNameViolation(ex)) {
-				throw ex;
-			}
-			result.rejectValue("name", "duplicate", "already exists");
-			return VIEWS_PETS_CREATE_OR_UPDATE_FORM;
-		}
-		redirectAttributes.addFlashAttribute("message", "Pet details has been edited");
-		return "redirect:/owners/{ownerId}";
-	}
-
-	/**
-	 * Updates the pet details if it exists or adds a new pet to the owner.
-	 * @param owner The owner of the pet
-	 * @param pet The pet with updated details
-	 */
-	private void updatePetDetails(Owner owner, Pet pet) {
-		Integer id = pet.getId();
-		Assert.state(id != null, "'pet.getId()' must not be null");
-		Pet existingPet = owner.getPet(id);
-		if (existingPet != null) {
-			// Update existing pet's properties
-			existingPet.setName(pet.getName());
-			existingPet.setBirthDate(pet.getBirthDate());
-			existingPet.setType(pet.getType());
-		}
-		else {
-			owner.addPet(pet);
-		}
-		this.owners.saveAndFlush(owner);
-	}
-
-	private boolean isDuplicatePetNameViolation(DataIntegrityViolationException ex) {
-		String message = ex.getMessage();
-		return message != null && message.toLowerCase().contains("unique_owner_pet_name");
+		return this.updateProcessor.process(owner, pet, result, redirectAttributes);
 	}
 
 }
