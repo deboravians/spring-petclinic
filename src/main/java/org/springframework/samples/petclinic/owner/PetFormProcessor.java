@@ -28,10 +28,10 @@ abstract class PetFormProcessor {
 
 	private static final String SUCCESS_VIEW = "redirect:/owners/{ownerId}";
 
-	protected final OwnerRepository owners;
+	protected final ClinicFacade clinic;
 
-	protected PetFormProcessor(OwnerRepository owners) {
-		this.owners = owners;
+	protected PetFormProcessor(ClinicFacade clinic) {
+		this.clinic = clinic;
 	}
 
 	final String process(Owner owner, Pet pet, BindingResult result, RedirectAttributes redirectAttributes) {

@@ -16,7 +16,6 @@
 package org.springframework.samples.petclinic.owner;
 
 import java.util.Collection;
-import java.util.Optional;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
@@ -45,46 +44,32 @@ class PetController {
 
 	private static final String VIEWS_PETS_CREATE_OR_UPDATE_FORM = PetFormProcessor.FORM_VIEW;
 
-	private final OwnerRepository owners;
-
-	private final PetTypeRepository types;
+	private final ClinicFacade clinic;
 
 	private final PetFormProcessor creationProcessor;
 
 	private final PetFormProcessor updateProcessor;
 
-	public PetController(OwnerRepository owners, PetTypeRepository types) {
-		this.owners = owners;
-		this.types = types;
-		this.creationProcessor = new CreatePetFormProcessor(owners);
-		this.updateProcessor = new UpdatePetFormProcessor(owners);
+	public PetController(ClinicFacade clinic) {
+		this.clinic = clinic;
+		this.creationProcessor = new CreatePetFormProcessor(clinic);
+		this.updateProcessor = new UpdatePetFormProcessor(clinic);
 	}
 
 	@ModelAttribute("types")
 	public Collection<PetType> populatePetTypes() {
-		return this.types.findPetTypes();
+		return this.clinic.findPetTypes();
 	}
 
 	@ModelAttribute("owner")
 	public Owner findOwner(@PathVariable("ownerId") int ownerId) {
-		Optional<Owner> optionalOwner = this.owners.findById(ownerId);
-		Owner owner = optionalOwner.orElseThrow(() -> new IllegalArgumentException(
-				"Owner not found with id: " + ownerId + ". Please ensure the ID is correct "));
-		return owner;
+		return this.clinic.findOwner(ownerId);
 	}
 
 	@ModelAttribute("pet")
 	public Pet findPet(@PathVariable("ownerId") int ownerId,
 			@PathVariable(name = "petId", required = false) Integer petId) {
-
-		if (petId == null) {
-			return new Pet();
-		}
-
-		Optional<Owner> optionalOwner = this.owners.findById(ownerId);
-		Owner owner = optionalOwner.orElseThrow(() -> new IllegalArgumentException(
-				"Owner not found with id: " + ownerId + ". Please ensure the ID is correct "));
-		return owner.getPet(petId);
+		return this.clinic.findPet(ownerId, petId);
 	}
 
 	@InitBinder("owner")

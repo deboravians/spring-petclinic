@@ -23,8 +23,8 @@ import org.springframework.util.Assert;
 
 class UpdatePetFormProcessor extends PetFormProcessor {
 
-	UpdatePetFormProcessor(OwnerRepository owners) {
-		super(owners);
+	UpdatePetFormProcessor(ClinicFacade clinic) {
+		super(clinic);
 	}
 
 	@Override
@@ -51,7 +51,7 @@ class UpdatePetFormProcessor extends PetFormProcessor {
 		else {
 			owner.addPet(pet);
 		}
-		this.owners.saveAndFlush(owner);
+		this.clinic.saveAndFlush(owner);
 	}
 
 	@Override

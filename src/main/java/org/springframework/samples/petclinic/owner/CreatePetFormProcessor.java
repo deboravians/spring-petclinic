@@ -22,8 +22,8 @@ import org.springframework.samples.petclinic.owner.validation.PetValidationRules
 
 class CreatePetFormProcessor extends PetFormProcessor {
 
-	CreatePetFormProcessor(OwnerRepository owners) {
-		super(owners);
+	CreatePetFormProcessor(ClinicFacade clinic) {
+		super(clinic);
 	}
 
 	@Override
@@ -34,7 +34,7 @@ class CreatePetFormProcessor extends PetFormProcessor {
 	@Override
 	protected void save(Owner owner, Pet pet) {
 		owner.addPet(pet);
-		this.owners.saveAndFlush(owner);
+		this.clinic.saveAndFlush(owner);
 	}
 
 	@Override

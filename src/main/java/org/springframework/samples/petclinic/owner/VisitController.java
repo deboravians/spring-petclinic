@@ -17,7 +17,6 @@ package org.springframework.samples.petclinic.owner;
 
 import java.time.LocalDate;
 import java.util.Map;
-import java.util.Optional;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
@@ -42,10 +41,10 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @Controller
 class VisitController {
 
-	private final OwnerRepository owners;
+	private final ClinicFacade clinic;
 
-	public VisitController(OwnerRepository owners) {
-		this.owners = owners;
+	public VisitController(ClinicFacade clinic) {
+		this.clinic = clinic;
 	}
 
 	@InitBinder
@@ -63,15 +62,8 @@ class VisitController {
 	@ModelAttribute("visit")
 	public Visit loadPetWithVisit(@PathVariable("ownerId") int ownerId, @PathVariable("petId") int petId,
 			Map<String, Object> model) {
-		Optional<Owner> optionalOwner = owners.findById(ownerId);
-		Owner owner = optionalOwner.orElseThrow(() -> new IllegalArgumentException(
-				"Owner not found with id: " + ownerId + ". Please ensure the ID is correct "));
-
-		Pet pet = owner.getPet(petId);
-		if (pet == null) {
-			throw new IllegalArgumentException(
-					"Pet with id " + petId + " not found for owner with id " + ownerId + ".");
-		}
+		Owner owner = this.clinic.findOwner(ownerId);
+		Pet pet = this.clinic.requirePet(owner, ownerId, petId);
 		model.put("pet", pet);
 		model.put("owner", owner);
 
@@ -105,8 +97,7 @@ class VisitController {
 			return "pets/createOrUpdateVisitForm";
 		}
 
-		owner.addVisit(petId, visit);
-		this.owners.save(owner);
+		this.clinic.addVisit(owner, petId, visit);
 		redirectAttributes.addFlashAttribute("message", "Your visit has been booked");
 		return "redirect:/owners/{ownerId}";
 	}
