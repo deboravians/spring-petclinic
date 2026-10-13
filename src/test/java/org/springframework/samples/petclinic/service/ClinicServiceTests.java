@@ -32,9 +32,12 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.samples.petclinic.owner.Owner;
+import org.springframework.samples.petclinic.owner.OwnerBuilder;
 import org.springframework.samples.petclinic.owner.OwnerRepository;
 import org.springframework.samples.petclinic.owner.Pet;
+import org.springframework.samples.petclinic.owner.PetBuilder;
 import org.springframework.samples.petclinic.owner.PetType;
+import org.springframework.samples.petclinic.owner.VisitBuilder;
 import org.springframework.samples.petclinic.owner.PetTypeRepository;
 import org.springframework.samples.petclinic.owner.Visit;
 import org.springframework.samples.petclinic.vet.Vet;
@@ -112,12 +115,13 @@ class ClinicServiceTests {
 		Page<Owner> owners = this.owners.findByLastNameStartingWith("Schultz", pageable);
 		int found = (int) owners.getTotalElements();
 
-		Owner owner = new Owner();
-		owner.setFirstName("Sam");
-		owner.setLastName("Schultz");
-		owner.setAddress("4, Evans Street");
-		owner.setCity("Wollongong");
-		owner.setTelephone("4444444444");
+		Owner owner = OwnerBuilder.owner()
+			.withFirstName("Sam")
+			.withLastName("Schultz")
+			.withAddress("4, Evans Street")
+			.withCity("Wollongong")
+			.withTelephone("4444444444")
+			.build();
 		this.owners.save(owner);
 		assertThat(owner.getId()).isNotZero();
 
@@ -163,11 +167,12 @@ class ClinicServiceTests {
 
 		int found = owner6.getPets().size();
 
-		Pet pet = new Pet();
-		pet.setName("bowser");
 		Collection<PetType> types = this.types.findPetTypes();
-		pet.setType(EntityUtils.getById(types, PetType.class, 2));
-		pet.setBirthDate(LocalDate.now());
+		Pet pet = PetBuilder.pet()
+			.withName("bowser")
+			.withType(EntityUtils.getById(types, PetType.class, 2))
+			.withBirthDate(LocalDate.now())
+			.build();
 		owner6.addPet(pet);
 		assertThat(owner6.getPets()).hasSize(found + 1);
 
@@ -223,8 +228,7 @@ class ClinicServiceTests {
 
 		Pet pet7 = owner6.getPet(7);
 		int found = pet7.getVisits().size();
-		Visit visit = new Visit();
-		visit.setDescription("test");
+		Visit visit = VisitBuilder.visit().withDescription("test").build();
 
 		owner6.addVisit(pet7.getId(), visit);
 		this.owners.save(owner6);
@@ -257,18 +261,13 @@ class ClinicServiceTests {
 		assertThat(optionalOwner).isPresent();
 		Owner owner = optionalOwner.get();
 
-		Pet pet1 = new Pet();
-		pet1.setName("DuplicatePetName");
 		Collection<PetType> types = this.types.findPetTypes();
-		pet1.setType(EntityUtils.getById(types, PetType.class, 1));
-		pet1.setBirthDate(LocalDate.now());
+		PetType cat = EntityUtils.getById(types, PetType.class, 1);
+		Pet pet1 = PetBuilder.pet().withName("DuplicatePetName").withType(cat).withBirthDate(LocalDate.now()).build();
 		owner.addPet(pet1);
 		this.owners.saveAndFlush(owner);
 
-		Pet pet2 = new Pet();
-		pet2.setName("duplicatepetname"); // Case-insensitive duplicate name
-		pet2.setType(EntityUtils.getById(types, PetType.class, 1));
-		pet2.setBirthDate(LocalDate.now());
+		Pet pet2 = PetBuilder.pet().withName("duplicatepetname").withType(cat).withBirthDate(LocalDate.now()).build();
 		owner.addPet(pet2);
 
 		assertThrows(DataIntegrityViolationException.class, () -> {
@@ -286,10 +285,7 @@ class ClinicServiceTests {
 		assertThat(owner1Opt).isPresent();
 		Owner owner1 = owner1Opt.get();
 
-		Pet pet1 = new Pet();
-		pet1.setName("SamePetName");
-		pet1.setType(catType);
-		pet1.setBirthDate(LocalDate.now());
+		Pet pet1 = PetBuilder.pet().withName("SamePetName").withType(catType).withBirthDate(LocalDate.now()).build();
 		owner1.addPet(pet1);
 		this.owners.saveAndFlush(owner1);
 
@@ -297,11 +293,7 @@ class ClinicServiceTests {
 		assertThat(owner2Opt).isPresent();
 		Owner owner2 = owner2Opt.get();
 
-		Pet pet2 = new Pet();
-		pet2.setName("samepetname"); // Case-insensitive duplicate name, but for a
-										// different owner
-		pet2.setType(catType);
-		pet2.setBirthDate(LocalDate.now());
+		Pet pet2 = PetBuilder.pet().withName("samepetname").withType(catType).withBirthDate(LocalDate.now()).build();
 		owner2.addPet(pet2);
 
 		// Saving for different owner should succeed

@@ -21,6 +21,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledInNativeImage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -57,7 +59,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * @author Colin But
  * @author Wick Dynex
  */
-@WebMvcTest(OwnerController.class)
+@WebMvcTest(value = OwnerController.class,
+		includeFilters = @ComponentScan.Filter(value = ClinicFacade.class, type = FilterType.ASSIGNABLE_TYPE))
 @DisabledInNativeImage
 @DisabledInAotMode
 class OwnerControllerTests {
@@ -70,23 +73,19 @@ class OwnerControllerTests {
 	@MockitoBean
 	private OwnerRepository owners;
 
+	@MockitoBean
+	private PetTypeRepository types;
+
 	private Owner george() {
-		Owner george = new Owner();
-		george.setId(TEST_OWNER_ID);
-		george.setFirstName("George");
-		george.setLastName("Franklin");
-		george.setAddress("110 W. Liberty St.");
-		george.setCity("Madison");
-		george.setTelephone("6085551023");
-		Pet max = new Pet();
-		PetType dog = new PetType();
-		dog.setName("dog");
-		max.setType(dog);
-		max.setName("Max");
-		max.setBirthDate(LocalDate.now());
-		george.addPet(max);
-		max.setId(1);
-		return george;
+		return OwnerBuilder.owner()
+			.withId(TEST_OWNER_ID)
+			.withFirstName("George")
+			.withLastName("Franklin")
+			.withAddress("110 W. Liberty St.")
+			.withCity("Madison")
+			.withTelephone("6085551023")
+			.withPet(PetBuilder.pet().withId(1).withName("Max").withType("dog").withBirthDate(LocalDate.now()))
+			.build();
 	}
 
 	@BeforeEach
@@ -97,9 +96,7 @@ class OwnerControllerTests {
 			.willReturn(new PageImpl<>(List.of(george)));
 
 		given(this.owners.findById(TEST_OWNER_ID)).willReturn(Optional.of(george));
-		Visit visit = new Visit();
-		visit.setDate(LocalDate.now());
-		george.getPet("Max").getVisits().add(visit);
+		george.getPet("Max").getVisits().add(VisitBuilder.visit().withDate(LocalDate.now()).build());
 
 	}
 
@@ -299,13 +296,14 @@ class OwnerControllerTests {
 	void processUpdateOwnerFormWithIdMismatch() throws Exception {
 		int pathOwnerId = 1;
 
-		Owner owner = new Owner();
-		owner.setId(2);
-		owner.setFirstName("John");
-		owner.setLastName("Doe");
-		owner.setAddress("Center Street");
-		owner.setCity("New York");
-		owner.setTelephone("0123456789");
+		Owner owner = OwnerBuilder.owner()
+			.withId(2)
+			.withFirstName("John")
+			.withLastName("Doe")
+			.withAddress("Center Street")
+			.withCity("New York")
+			.withTelephone("0123456789")
+			.build();
 
 		when(owners.findById(pathOwnerId)).thenReturn(Optional.of(owner));
 
