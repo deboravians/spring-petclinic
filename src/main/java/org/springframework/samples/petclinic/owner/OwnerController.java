@@ -17,7 +17,6 @@ package org.springframework.samples.petclinic.owner;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -50,10 +49,10 @@ class OwnerController {
 
 	private static final String VIEWS_OWNER_CREATE_OR_UPDATE_FORM = "owners/createOrUpdateOwnerForm";
 
-	private final OwnerRepository owners;
+	private final ClinicFacade clinic;
 
-	public OwnerController(OwnerRepository owners) {
-		this.owners = owners;
+	public OwnerController(ClinicFacade clinic) {
+		this.clinic = clinic;
 	}
 
 	@InitBinder
@@ -63,10 +62,7 @@ class OwnerController {
 
 	@ModelAttribute("owner")
 	public Owner findOwner(@PathVariable(name = "ownerId", required = false) Integer ownerId) {
-		return ownerId == null ? new Owner()
-				: this.owners.findById(ownerId)
-					.orElseThrow(() -> new IllegalArgumentException("Owner not found with id: " + ownerId
-							+ ". Please ensure the ID is correct " + "and the owner exists in the database."));
+		return this.clinic.findOwnerOrNew(ownerId);
 	}
 
 	@GetMapping("/owners/new")
@@ -81,7 +77,7 @@ class OwnerController {
 			return VIEWS_OWNER_CREATE_OR_UPDATE_FORM;
 		}
 
-		this.owners.save(owner);
+		this.clinic.save(owner);
 		redirectAttributes.addFlashAttribute("message", "New Owner Created");
 		return "redirect:/owners/" + owner.getId();
 	}
@@ -142,7 +138,7 @@ class OwnerController {
 		int pageSize = 5;
 		int validatedPage = Math.max(page, 1);
 		Pageable pageable = PageRequest.of(validatedPage - 1, pageSize);
-		return owners.findByLastNameStartingWith(lastname, pageable);
+		return this.clinic.findOwnersByLastName(lastname, pageable);
 	}
 
 	@GetMapping("/owners/{ownerId}/edit")
@@ -165,7 +161,7 @@ class OwnerController {
 		}
 
 		owner.setId(ownerId);
-		this.owners.save(owner);
+		this.clinic.save(owner);
 		redirectAttributes.addFlashAttribute("message", "Owner Values Updated");
 		return "redirect:/owners/{ownerId}";
 	}
@@ -178,9 +174,7 @@ class OwnerController {
 	@GetMapping("/owners/{ownerId}")
 	public ModelAndView showOwner(@PathVariable("ownerId") int ownerId) {
 		ModelAndView mav = new ModelAndView("owners/ownerDetails");
-		Optional<Owner> optionalOwner = this.owners.findById(ownerId);
-		Owner owner = optionalOwner.orElseThrow(() -> new IllegalArgumentException(
-				"Owner not found with id: " + ownerId + ". Please ensure the ID is correct "));
+		Owner owner = this.clinic.findOwner(ownerId);
 		mav.addObject(owner);
 		return mav;
 	}

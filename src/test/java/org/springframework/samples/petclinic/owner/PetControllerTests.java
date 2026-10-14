@@ -49,7 +49,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * @author Wick Dynex
  */
 @WebMvcTest(value = PetController.class,
-		includeFilters = @ComponentScan.Filter(value = PetTypeFormatter.class, type = FilterType.ASSIGNABLE_TYPE))
+		includeFilters = { @ComponentScan.Filter(value = PetTypeFormatter.class, type = FilterType.ASSIGNABLE_TYPE),
+				@ComponentScan.Filter(value = ClinicFacade.class, type = FilterType.ASSIGNABLE_TYPE) })
 @DisabledInNativeImage
 @DisabledInAotMode
 class PetControllerTests {
@@ -74,15 +75,10 @@ class PetControllerTests {
 		cat.setName("hamster");
 		given(this.types.findPetTypes()).willReturn(List.of(cat));
 
-		Owner owner = new Owner();
-		Pet pet = new Pet();
-		Pet dog = new Pet();
-		owner.addPet(pet);
-		owner.addPet(dog);
-		pet.setId(TEST_PET_ID);
-		dog.setId(TEST_PET_ID + 1);
-		pet.setName("petty");
-		dog.setName("doggy");
+		Owner owner = OwnerBuilder.owner()
+			.withPet(PetBuilder.pet().withId(TEST_PET_ID).withName("petty"))
+			.withPet(PetBuilder.pet().withId(TEST_PET_ID + 1).withName("doggy"))
+			.build();
 		given(this.owners.findById(TEST_OWNER_ID)).willReturn(Optional.of(owner));
 	}
 

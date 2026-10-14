@@ -15,46 +15,36 @@
  */
 package org.springframework.samples.petclinic.owner;
 
-import org.springframework.util.StringUtils;
+import java.util.List;
+
+import org.springframework.samples.petclinic.owner.validation.PetValidationRule;
+import org.springframework.samples.petclinic.owner.validation.PetValidationRules;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
 
 /**
  * <code>Validator</code> for <code>Pet</code> forms.
- * <p>
- * We're not using Bean Validation annotations here because it is easier to define such
- * validation rule in Java.
- * </p>
  *
  * @author Ken Krebs
  * @author Juergen Hoeller
  */
 public class PetValidator implements Validator {
 
-	private static final String REQUIRED = "required";
+	private final List<PetValidationRule> rules;
 
-	private static final int MAX_NAME_LENGTH = 30;
+	public PetValidator() {
+		this(PetValidationRules.fieldRules());
+	}
+
+	public PetValidator(List<PetValidationRule> rules) {
+		this.rules = rules;
+	}
 
 	@Override
 	public void validate(Object obj, Errors errors) {
 		Pet pet = (Pet) obj;
-		String name = pet.getName();
-		// name validation
-		if (!StringUtils.hasText(name)) {
-			errors.rejectValue("name", REQUIRED, REQUIRED);
-		}
-		else if (name.length() > MAX_NAME_LENGTH) {
-			errors.rejectValue("name", "size", "Name must be no more than 30 characters");
-		}
-
-		// type validation
-		if (pet.isNew() && pet.getType() == null) {
-			errors.rejectValue("type", REQUIRED, REQUIRED);
-		}
-
-		// birth date validation
-		if (pet.getBirthDate() == null) {
-			errors.rejectValue("birthDate", REQUIRED, REQUIRED);
+		for (PetValidationRule rule : this.rules) {
+			rule.validate(pet, errors);
 		}
 	}
 
